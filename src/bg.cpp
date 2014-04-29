@@ -555,6 +555,8 @@ void updateGraphics(void)
 
 void updateHaptics(void)
 {
+    double timeV = 0.0;
+
     // main haptic simulation loop
     while(simulationRunning)
     {
@@ -562,6 +564,7 @@ void updateHaptics(void)
         lastTime = pClock.getCurrentTimeSeconds();
 
         cVector3d equilibrium (0.0, 0.0, 0.0);
+        cVector3d pos0 (0.0, 0.0, 0.0), pos1 (0.0, 0.0, 0.0);
 
         // for each device
         int i=0;
@@ -572,7 +575,7 @@ void updateHaptics(void)
             hapticDevices[i]->getPosition(newPosition);
             newPosition = deviceToWorld(newPosition, i);
 
-            equilibrium += newPosition * 0.5;
+            ((i == 0)? pos0 : pos1) = newPosition;
 
             // read orientation of haptic device
             cMatrix3d newRotation;
@@ -609,13 +612,29 @@ void updateHaptics(void)
             i++;
         }
 
+        double f0, f1;
+        f0 = pos0.length();
+        f1 = pos1.length();
+
+        f0 = f0/(f0 + f1);
+        f1 = 1.0 - f0;
+
+        equilibrium = pos1 + (pos0 - pos1)*f0;
+
         // Update the position of the sun
-        cVector3d dir = equilibrium - sun->getPos();
-        double distance = dir.length();
-        if (distance > 0.1)
-            dir.normalize();
-        distance *= 1000.0;
-        sun->setPos(sun->getPos() + dir*distance*distance*deltaTime);
+        cVector3d dir = pos1 - pos0;
+        double dist = dir.length();
+        dir.normalize();
+
+        double vibrationSpeed = 20.0;
+        double vibrationAmount = 0.02;
+
+        //sun->setPos(sun->getPos()*(1.0 - deltaTime*speed) + equilibrium*(deltaTime*speed));
+        timeV += deltaTime*vibrationSpeed*(0.7 - cAbs(f0 - 0.5)*2.0);
+        sun->setPos(equilibrium + vibrationAmount*dir*cSinRad(timeV));
+
+        printf(" f0 %f\n",f0);
+
 
         for (i = 0; i < numHapticDevices; i++) {
             // compute a reaction force
@@ -628,7 +647,7 @@ void updateHaptics(void)
             double k = 0.5;
             double dist = (devicePosition - sun->getPos()).length();
             dist=dist-0.1;
-            printf("distance %f\n",distance);
+
             newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
             double intensity = (newForce.length()-9.0)*1.0;
             newForce.normalize();
@@ -639,8 +658,6 @@ void updateHaptics(void)
             if (i == 0) {  // Device on positive X (RIGHT)
                 newForce.x *= -1.0;
                 newForce.y *= -1.0;
-
-                printf("force %f  , dist %f\n" ,newForce.length(),dist);
             }
 
             // send computed force to haptic device

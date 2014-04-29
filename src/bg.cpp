@@ -172,15 +172,9 @@ int main(int argc, char* argv[])
 
     printf ("\n");
     printf ("-----------------------------------\n");
-    printf ("CHAI 3D\n");
-    printf ("Demo: 01-devices\n");
-    printf ("Copyright 2003-2010\n");
+    printf ("Be God\n");
+    printf ("DH2660 Haptics\n");
     printf ("-----------------------------------\n");
-    printf ("\n\n");
-    printf ("Keyboard Options:\n\n");
-    printf ("[1] - Render attraction force\n");
-    printf ("[2] - Render viscous environment\n");
-    printf ("[x] - Exit application\n");
     printf ("\n\n");
 
     // parse first arg to try and locate resources
@@ -233,7 +227,7 @@ int main(int argc, char* argv[])
 
     // Check if two devices are plugged in.
     if(numHapticDevices != 2) {
-        printf("Two devices are needed.");
+        std::cout << "Application shut down: Two falcon devices are needed." << std::endl;
         exit(0);
     }
 

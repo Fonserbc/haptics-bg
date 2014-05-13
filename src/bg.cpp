@@ -28,6 +28,10 @@
 #include "chai3d.h"
 //---------------------------------------------------------------------------
 
+#include "Cube.hpp"
+#include "Sphere.hpp"
+#include "Logic.hpp"
+
 //---------------------------------------------------------------------------
 // DECLARED CONSTANTS
 //---------------------------------------------------------------------------
@@ -87,8 +91,9 @@ cShapeSphere* cursors[MAX_DEVICES];
 cShapeLine* velocityVectors[MAX_DEVICES];
 
 // material properties used to render the color of the cursors
-cMaterial matCursorButtonON;
-cMaterial matCursorButtonOFF;
+cMaterial matCursor2;
+cMaterial matCursor1;
+cMaterial matSun;
 
 // status of the main simulation haptics loop
 bool simulationRunning = false;
@@ -108,6 +113,8 @@ bool simulationFinished = false;
 cPrecisionClock pClock;
 double lastTime;
 cShapeSphere* sun;
+
+float coordinateFactor = 2.0f;
 
 //---------------------------------------------------------------------------
 // DECLARED MACROS
@@ -199,9 +206,9 @@ int main(int argc, char* argv[])
     world->addChild(camera);
 
     // position and oriente the camera
-    camera->set( cVector3d (0.0, 0.0, 0.5),    // camera position (eye)
+    camera->set( cVector3d (0.0, 1.5, 0.0),    // camera position (eye)
                  cVector3d (0.0, 0.0, 0.0),    // lookat position (target)
-                 cVector3d (0.0, -1.0, 0.0));   // direction of the "up" vector
+                 cVector3d (0.0, 0.0, 1.0));   // direction of the "up" vector
 
     // set the near and far clipping planes of the camera
     // anything in front/behind these clipping planes will not be rendered
@@ -214,6 +221,16 @@ int main(int argc, char* argv[])
     light->setPos(cVector3d( 2.0, 0.5, 1.0));  // position the light source
     light->setDir(cVector3d(-2.0, 0.5, 1.0));  // define the direction of the light beam
 
+    cVector3d lb = cVector3d(0.0, -0.5, -0.5);
+    cVector3d rb = cVector3d( 0.0, 0.5, -0.5);
+    cVector3d lu = cVector3d(0.0, -0.5, 0.5);
+    cVector3d ru = cVector3d(0.0, 0.5, 0.5);
+    cMesh quad = cMesh(world);
+
+    quad.newTriangle(lb, lu, ru);
+    quad.newTriangle(lb, ru, rb);
+
+    world->addChild(&quad);
 
     //-----------------------------------------------------------------------
     // HAPTIC DEVICES / TOOLS
@@ -228,7 +245,7 @@ int main(int argc, char* argv[])
     // Check if two devices are plugged in.
     if(numHapticDevices != 2) {
         std::cout << "Application shut down: Two falcon devices are needed." << std::endl;
-        exit(0);
+        //exit(0);
     }
 
     // create a node on which we will attach small labels that display the
@@ -324,16 +341,22 @@ int main(int argc, char* argv[])
     // user button of the device end-effector is engaged (ON) or released (OFF)
 
     // a light orange material color
-    matCursorButtonOFF.m_ambient.set(0.5, 0.2, 0.0);
-    matCursorButtonOFF.m_diffuse.set(1.0, 0.5, 0.0);
-    matCursorButtonOFF.m_specular.set(1.0, 1.0, 1.0);
+    matCursor1.m_ambient.set(0.5, 0.2, 0.0);
+    matCursor1.m_diffuse.set(1.0, 0.5, 0.0);
+    matCursor1.m_specular.set(1.0, 1.0, 1.0);
 
     // a blue material color
-    matCursorButtonON.m_ambient.set(0.1, 0.1, 0.4);
-    matCursorButtonON.m_diffuse.set(0.3, 0.3, 0.8);
-    matCursorButtonON.m_specular.set(1.0, 1.0, 1.0);
+    matCursor2.m_ambient.set(0.1, 0.1, 0.4);
+    matCursor2.m_diffuse.set(0.3, 0.3, 0.8);
+    matCursor2.m_specular.set(1.0, 1.0, 1.0);
 
-    sun->m_material = matCursorButtonON;
+    matSun.m_ambient.set(0.4, 0.3, 0.0);
+    matSun.m_diffuse.set(1.0, 0.7, 0.0);
+    matSun.m_specular.set(1.0, 1.0, 1.0);
+    sun->m_material = matSun;
+
+
+    quad.m_material = matCursor2;
 
 
     //-----------------------------------------------------------------------
@@ -391,6 +414,9 @@ int main(int argc, char* argv[])
 cVector3d deviceToWorld(cVector3d position, int deviceId) {
     cVector3d p = position;
 
+    p.y *= coordinateFactor;
+    p.z *= coordinateFactor;
+
     p.x += DEVICE_DISTANCE/2.0;
 
     if (deviceId == 0) {  // Device on positive X (RIGHT)
@@ -398,7 +424,7 @@ cVector3d deviceToWorld(cVector3d position, int deviceId) {
         p.y *= -1.0;
     }
 
-    return p*2.0;
+    return p;
 }
 
 cVector3d worldToDevice(cVector3d position, int deviceId) {
@@ -411,7 +437,10 @@ cVector3d worldToDevice(cVector3d position, int deviceId) {
 
     p.x -= DEVICE_DISTANCE/2.0;
 
-    return p/2.0;
+    p.y /= coordinateFactor;
+    p.z /= coordinateFactor;
+
+    return p;
 }
 
 //---------------------------------------------------------------------------
@@ -599,14 +628,10 @@ void updateHaptics(void)
 
             // adjustthe  color of the cursor according to the status of
             // the user switch (ON = TRUE / OFF = FALSE)
-            if (buttonStatus)
-            {
-                cursors[i]->m_material = matCursorButtonON;
-            }
+            if (i == 0)
+                cursors[i]->m_material = matCursor2;
             else
-            {
-                cursors[i]->m_material = matCursorButtonOFF;
-            }
+                cursors[i]->m_material = matCursor1;
 
             // increment counter
             i++;
@@ -631,9 +656,9 @@ void updateHaptics(void)
 
         //sun->setPos(sun->getPos()*(1.0 - deltaTime*speed) + equilibrium*(deltaTime*speed));
         timeV += deltaTime*vibrationSpeed*(0.7 - cAbs(f0 - 0.5)*2.0);
-        sun->setPos(equilibrium + vibrationAmount*dir*cSinRad(timeV));
+        sun->setPos(equilibrium /*+ vibrationAmount*dir*cSinRad(timeV)*/);
 
-        printf(" f0 %f\n",f0);
+//        printf(" f0 %f\n",f0);
 
 
         for (i = 0; i < numHapticDevices; i++) {

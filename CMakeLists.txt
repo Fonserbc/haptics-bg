@@ -71,7 +71,10 @@ ENDIF(UNIX)
 # Add project executable, source files, and dependencies
 
 ADD_EXECUTABLE(Haptics
-        src/bg.cpp
+    src/bg.cpp
+    src/Cube.hpp
+    src/Sphere.hpp
+    src/Logic.hpp
 )
 
 IF(MSVC)

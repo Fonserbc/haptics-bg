@@ -112,7 +112,7 @@ bool simulationFinished = false;
 
 cPrecisionClock pClock;
 double lastTime;
-cShapeSphere* sun;
+Sphere* sun;
 
 float coordinateFactor = 2.0f;
 
@@ -206,13 +206,14 @@ int main(int argc, char* argv[])
     world->addChild(camera);
 
     // position and oriente the camera
-    camera->set( cVector3d (0.0, 1.5, 0.0),    // camera position (eye)
+    camera->set( cVector3d (-1.0, 0.0, 0.0),    // camera position (eye)
                  cVector3d (0.0, 0.0, 0.0),    // lookat position (target)
                  cVector3d (0.0, 0.0, 1.0));   // direction of the "up" vector
 
     // set the near and far clipping planes of the camera
     // anything in front/behind these clipping planes will not be rendered
     camera->setClippingPlanes(0.01, 10.0);
+    camera->enableMultipassTransparency(true);
 
     // create a light source and attach it to the camera
     light = new cLight(world);
@@ -221,16 +222,6 @@ int main(int argc, char* argv[])
     light->setPos(cVector3d( 2.0, 0.5, 1.0));  // position the light source
     light->setDir(cVector3d(-2.0, 0.5, 1.0));  // define the direction of the light beam
 
-    cVector3d lb = cVector3d(0.0, -0.5, -0.5);
-    cVector3d rb = cVector3d( 0.0, 0.5, -0.5);
-    cVector3d lu = cVector3d(0.0, -0.5, 0.5);
-    cVector3d ru = cVector3d(0.0, 0.5, 0.5);
-    cMesh quad = cMesh(world);
-
-    quad.newTriangle(lb, lu, ru);
-    quad.newTriangle(lb, ru, rb);
-
-    world->addChild(&quad);
 
     //-----------------------------------------------------------------------
     // HAPTIC DEVICES / TOOLS
@@ -333,9 +324,6 @@ int main(int argc, char* argv[])
         i++;
     }
 
-    sun = new cShapeSphere(0.05);
-    world->addChild(sun);
-
 
     // here we define the material properties of the cursor when the
     // user button of the device end-effector is engaged (ON) or released (OFF)
@@ -353,10 +341,10 @@ int main(int argc, char* argv[])
     matSun.m_ambient.set(0.4, 0.3, 0.0);
     matSun.m_diffuse.set(1.0, 0.7, 0.0);
     matSun.m_specular.set(1.0, 1.0, 1.0);
-    sun->m_material = matSun;
 
-
-    quad.m_material = matCursor2;
+    cVector3d center(-0.5, 0.0, 0.0);
+    Cube* cube = new Cube(world, center, 0.2, matCursor2);
+    sun = new Sphere(world, NULL, 0.05, matSun);
 
 
     //-----------------------------------------------------------------------
@@ -686,7 +674,11 @@ void updateHaptics(void)
             }
 
             // send computed force to haptic device
-            hapticDevices[i]->setForce(newForce);
+//            bool status = true;
+//            if (hapticDevices[i]->getUserSwitch(0))
+//                printf("button pressed\n");
+
+//                hapticDevices[i]->setForce(newForce);
         }
     }
     

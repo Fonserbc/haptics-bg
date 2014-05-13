@@ -75,6 +75,8 @@ ADD_EXECUTABLE(Haptics
     src/Cube.hpp
     src/Sphere.hpp
     src/Logic.hpp
+    src/Cube.cpp
+    src/Sphere.cpp
 )
 
 IF(MSVC)

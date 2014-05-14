@@ -10,13 +10,16 @@ public:
 
     void setPos(cVector3d pos);
     cVector3d getPos();
+    double getRadius();
 
 private:
     cWorld* world;
     Cube* room;
 
+    double radius;
+
     cShapeSphere* sphere;
-    cShapeSphere* shadow;
+    cMesh* shadow;
 };
 
 #endif // SPHERE_HPP

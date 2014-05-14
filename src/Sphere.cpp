@@ -2,16 +2,25 @@
 
 Sphere::Sphere (cWorld* world, Cube* room, double radius, cMaterial material) {
     this->world = world;
+    this->radius = radius;
 
     sphere = new cShapeSphere(radius);
     sphere->m_material = material;
 
-    shadow = new cShapeSphere(radius);
-    cVector3d scale = cVector3d(1.0, 1.0, 0.01);
-    shadow->scaleObject(scale);
+//    shadow = new cShapeSphere(radius);
+    shadow = new cMesh(this->world);
+    shadow->setUseCulling(false, true);
+    int vertices[4];
+    vertices[0] = shadow->newVertex(radius, -radius, 0.0);
+    vertices[1] = shadow->newVertex(radius, radius, 0.0);
+    vertices[2] = shadow->newVertex(-radius, radius, 0.0);
+    vertices[3] = shadow->newVertex(-radius, -radius, 0.0);
+    shadow->newTriangle(vertices[0], vertices[1], vertices[2]);
+    shadow->newTriangle(vertices[0], vertices[2], vertices[3]);
+
     cMaterial matShadow;
-    matShadow.m_ambient.set(0.5, 0.05, 0.05);
-    matShadow.m_diffuse.set(0.5, 0.0, 0.0);
+    matShadow.m_ambient.set(0.0, 0.0, 0.0);
+    matShadow.m_diffuse.set(0.2, 0.2, 0.2);
     matShadow.m_specular.set(0.0, 0.0, 0.0);
     shadow->m_material = matShadow;
 
@@ -22,10 +31,14 @@ Sphere::Sphere (cWorld* world, Cube* room, double radius, cMaterial material) {
 void Sphere::setPos(cVector3d pos) {
     sphere->setPos(pos);
 
-    cVector3d shadowPos = cVector3d(pos.x, pos.y, -0.5);//room->getHeight() / 2);
+    cVector3d shadowPos = cVector3d(pos.x, pos.y, -0.25);//room->getHeight() / 2);
     shadow->setPos(shadowPos);
 }
 
 cVector3d Sphere::getPos() {
     return sphere->getPos();
+}
+
+double Sphere::getRadius() {
+    return radius;
 }

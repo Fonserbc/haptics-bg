@@ -10,12 +10,20 @@ Cube::Cube(cWorld *world, cVector3d position, double size, cMaterial material) {
     mesh->setUseTransparency(true);
     mesh->setUseCulling(false, true);
 
-    this->createCube(mesh, size);
+    createCube(size);
+
+    shadow = new cMesh(this->world);
+    cVector3d shadowPos(position.x, position.y, -0.251);
+    shadow->setPos(shadowPos);
+    shadow->setUseCulling(false, true);
+
+    createShadow(size);
 
     this->world->addChild(mesh);
+    this->world->addChild(shadow);
 }
 
-void Cube::createCube(cMesh* mesh, double size, bool inside) {
+void Cube::createCube(double size) {
     const double offset = size / 2.0;
     int vertices [6][6];
 
@@ -55,17 +63,10 @@ void Cube::createCube(cMesh* mesh, double size, bool inside) {
     vertices[5][2] = mesh->newVertex(-offset,   offset,  offset);
     vertices[5][3] = mesh->newVertex(-offset,  -offset,  offset);
 
-    // create triangles
-    if (inside) {
-        for (int i=0; i<6; i++) {
-            mesh->newTriangle(vertices[i][2], vertices[i][1], vertices[i][0]);
-            mesh->newTriangle(vertices[i][3], vertices[i][2], vertices[i][0]);
-        }
-    } else {
-        for (int i=0; i<6; i++) {
-            mesh->newTriangle(vertices[i][0], vertices[i][1], vertices[i][2]);
-            mesh->newTriangle(vertices[i][0], vertices[i][2], vertices[i][3]);
-        }
+    // create triangles   
+    for (int i=0; i<6; i++) {
+        mesh->newTriangle(vertices[i][0], vertices[i][1], vertices[i][2]);
+        mesh->newTriangle(vertices[i][0], vertices[i][2], vertices[i][3]);
     }
 
 //    for (int i=0; i<6; i++) {
@@ -81,4 +82,30 @@ void Cube::createCube(cMesh* mesh, double size, bool inside) {
 
     // compute normals
     mesh->computeAllNormals();
+}
+
+void Cube::createShadow(double size) {
+    const double offset = size / 2.0;
+    int vertices[4];
+    vertices[0] = shadow->newVertex(offset, -offset, 0.0);
+    vertices[1] = shadow->newVertex(offset, offset, 0.0);
+    vertices[2] = shadow->newVertex(-offset, offset, 0.0);
+    vertices[3] = shadow->newVertex(-offset, -offset, 0.0);
+    shadow->newTriangle(vertices[0], vertices[1], vertices[2]);
+    shadow->newTriangle(vertices[0], vertices[2], vertices[3]);
+
+    cMaterial matShadow;
+    matShadow.m_ambient.set(0.0, 0.0, 0.0);
+    matShadow.m_diffuse.set(0.2, 0.2, 0.35);
+    matShadow.m_specular.set(0.0, 0.0, 0.0);
+    shadow->m_material = matShadow;
+}
+
+cVector3d Cube::getPos() {
+    return mesh->getPos();
+}
+
+void Cube::remove() {
+    mesh->clear();
+    shadow->clear();
 }

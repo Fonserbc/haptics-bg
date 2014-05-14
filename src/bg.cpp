@@ -28,7 +28,6 @@
 #include "chai3d.h"
 //---------------------------------------------------------------------------
 
-#include "Cube.hpp"
 #include "Sphere.hpp"
 #include "Logic.hpp"
 
@@ -46,7 +45,6 @@ const int OPTION_WINDOWDISPLAY  = 2;
 
 // maximum number of haptic devices supported in this demo
 const int MAX_DEVICES           = 2;
-
 const double DEVICE_DISTANCE    = 0.3;
 
 
@@ -112,9 +110,11 @@ bool simulationFinished = false;
 
 cPrecisionClock pClock;
 double lastTime;
-Sphere* sun;
 
-float coordinateFactor = 2.0f;
+Sphere* sun;
+Logic* logic;
+
+float coordinateFactor = 4.0f;
 
 //---------------------------------------------------------------------------
 // DECLARED MACROS
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
     world->addChild(camera);
 
     // position and oriente the camera
-    camera->set( cVector3d (-1.0, 0.0, 0.0),    // camera position (eye)
+    camera->set( cVector3d (-0.75, 0.0, 0.25),    // camera position (eye)
                  cVector3d (0.0, 0.0, 0.0),    // lookat position (target)
                  cVector3d (0.0, 0.0, 1.0));   // direction of the "up" vector
 
@@ -342,9 +342,10 @@ int main(int argc, char* argv[])
     matSun.m_diffuse.set(1.0, 0.7, 0.0);
     matSun.m_specular.set(1.0, 1.0, 1.0);
 
-    cVector3d center(-0.5, 0.0, 0.0);
-    Cube* cube = new Cube(world, center, 0.2, matCursor2);
+//    cVector3d center(-0.5, 0.0, 0.0);
+//    Cube* cube = new Cube(world, center, 0.2, matCursor2);
     sun = new Sphere(world, NULL, 0.05, matSun);
+    logic = new Logic(world, sun);
 
 
     //-----------------------------------------------------------------------
@@ -456,6 +457,12 @@ void keySelect(unsigned char key, int x, int y)
 
         // exit application
         exit(0);
+    }
+
+    // option 1:
+    if (key == 'c')
+    {
+        logic->spawnNewTarget();
     }
 
     // option 1:
@@ -646,8 +653,8 @@ void updateHaptics(void)
         timeV += deltaTime*vibrationSpeed*(0.7 - cAbs(f0 - 0.5)*2.0);
         sun->setPos(equilibrium /*+ vibrationAmount*dir*cSinRad(timeV)*/);
 
-//        printf(" f0 %f\n",f0);
-
+        // Update logic
+        logic->update(deltaTime);
 
         for (i = 0; i < numHapticDevices; i++) {
             // compute a reaction force
@@ -678,7 +685,16 @@ void updateHaptics(void)
 //            if (hapticDevices[i]->getUserSwitch(0))
 //                printf("button pressed\n");
 
-//                hapticDevices[i]->setForce(newForce);
+            // Check if the sphere is in the target area. If so, vibrate
+            cVector3d vibrationForce(0.0, 0.0, 0.0);
+            if (logic->sphereInTarget()) {
+                double t = pClock.getCurrentTimeSeconds();
+                vibrationForce = cVector3d(5*cSinRad(40*t), 0.0, 0.0);
+            }
+
+            newForce += vibrationForce;
+//            hapticDevices[i]->setForce(newForce);
+            hapticDevices[i]->setForce(vibrationForce);
         }
     }
     

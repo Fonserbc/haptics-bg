@@ -9,13 +9,15 @@ public:
 
     Cube(cWorld* world, cVector3d position, double size, cMaterial material);
 
-    // Returns the height (on z axis) of the cube
-    double getHeight();
+    cVector3d getPos();
+    void remove();
 
 private:
     cWorld* world;
     cMesh* mesh;
+    cMesh* shadow;
 
-    void createCube(cMesh* mesh, double size, bool inside = false);
+    void createCube(double size);
+    void createShadow(double size);
 };
 #endif // CUBE_HPP

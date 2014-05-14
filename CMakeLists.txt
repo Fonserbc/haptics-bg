@@ -73,11 +73,13 @@ ENDIF(UNIX)
 ADD_EXECUTABLE(Haptics
     src/bg.cpp
     src/Cube.hpp
-    src/Sphere.hpp
-    src/Logic.hpp
     src/Cube.cpp
+    src/Sphere.hpp
     src/Sphere.cpp
+    src/Logic.hpp
     src/Logic.cpp
+    src/Room.hpp
+    src/Room.cpp
 )
 
 IF(MSVC)

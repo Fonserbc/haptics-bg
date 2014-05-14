@@ -1,19 +1,19 @@
 #include "Cube.hpp"
 
-Cube::Cube(cWorld *world, cVector3d position, double size, cMaterial material) {
+Cube::Cube(cWorld *world, cVector3d position, double size, cMaterial material, double shadowOffset) {
     this->world = world;
 
     mesh = new cMesh(this->world);
     mesh->setPos(position);
-    mesh->m_material = material;
-    mesh->setTransparencyLevel(0.5);
     mesh->setUseTransparency(true);
+    mesh->m_material = material;
+    mesh->setTransparencyLevel(0.4);
     mesh->setUseCulling(false, true);
 
     createCube(size);
 
     shadow = new cMesh(this->world);
-    cVector3d shadowPos(position.x, position.y, -0.251);
+    cVector3d shadowPos(position.x, position.y, shadowOffset);
     shadow->setPos(shadowPos);
     shadow->setUseCulling(false, true);
 
@@ -101,11 +101,18 @@ void Cube::createShadow(double size) {
     shadow->m_material = matShadow;
 }
 
+void Cube::setMaterial(cMaterial material) {
+    mesh->m_material = material;
+    mesh->setTransparencyLevel(0.4);
+}
+
 cVector3d Cube::getPos() {
     return mesh->getPos();
 }
 
 void Cube::remove() {
+//    world->deleteChild(mesh);
+//    world->deleteChild(shadow);
     mesh->clear();
     shadow->clear();
 }

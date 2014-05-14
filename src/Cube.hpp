@@ -7,9 +7,10 @@ class Cube {
 public:
     double transparency;
 
-    Cube(cWorld* world, cVector3d position, double size, cMaterial material);
+    Cube(cWorld* world, cVector3d position, double size, cMaterial material, double shadowOffset);
 
     cVector3d getPos();
+    void setMaterial(cMaterial material);
     void remove();
 
 private:

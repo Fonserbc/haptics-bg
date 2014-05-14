@@ -24,10 +24,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sstream>
 //---------------------------------------------------------------------------
 #include "chai3d.h"
 //---------------------------------------------------------------------------
 
+#include "Room.hpp"
 #include "Sphere.hpp"
 #include "Logic.hpp"
 
@@ -111,10 +113,16 @@ bool simulationFinished = false;
 cPrecisionClock pClock;
 double lastTime;
 
+Room* room;
 Sphere* sun;
 Logic* logic;
 
-float coordinateFactor = 4.0f;
+// States
+bool calibrationFinished = false;
+bool scoreDisplayed = false;
+cVector3d min, max;
+
+float coordinateFactor = 2.0f;
 
 //---------------------------------------------------------------------------
 // DECLARED MACROS
@@ -199,7 +207,7 @@ int main(int argc, char* argv[])
 
     // set the background color of the environment
     // the color is defined by its (R,G,B) components.
-    world->setBackgroundColor(0.0, 0.0, 0.0);
+    world->setBackgroundColor(0.25, 0.55, 0.8);
 
     // create a camera and insert it into the virtual world
     camera = new cCamera(world);
@@ -245,13 +253,13 @@ int main(int argc, char* argv[])
     camera->m_front_2Dscene.addChild(rootLabels);
 
     // create a small label as title
-    cLabel* titleLabel = new cLabel();
-    rootLabels->addChild(titleLabel);
+//    cLabel* titleLabel = new cLabel();
+//    rootLabels->addChild(titleLabel);
 
-    // define its position, color and string message
-    titleLabel->setPos(0, 30, 0);
-    titleLabel->m_fontColor.set(1.0, 1.0, 1.0);
-    titleLabel->m_string = "Haptic Device Pos [mm]:";
+//    // define its position, color and string message
+//    titleLabel->setPos(0, 30, 0);
+//    titleLabel->m_fontColor.set(1.0, 1.0, 1.0);
+//    titleLabel->m_string = "Haptic Device Pos [mm]:";
 
     // for each available haptic device, create a 3D cursor
     // and a small line to show velocity
@@ -266,7 +274,7 @@ int main(int argc, char* argv[])
         newHapticDevice->open();
 
 		// initialize haptic device
-		newHapticDevice->initialize();
+        newHapticDevice->initialize();
 
         // store the handle in the haptic device table
         hapticDevices[i] = newHapticDevice;
@@ -314,11 +322,11 @@ int main(int argc, char* argv[])
         }
 
         // crate a small label to indicate the position of the device
-        cLabel* newPosLabel = new cLabel();
-        rootLabels->addChild(newPosLabel);
-        newPosLabel->setPos(0, -20 * i, 0);
-        newPosLabel->m_fontColor.set(0.6, 0.6, 0.6);
-        labels[i] = newPosLabel;
+//        cLabel* newPosLabel = new cLabel();
+//        rootLabels->addChild(newPosLabel);
+//        newPosLabel->setPos(0, -20 * i, 0);
+//        newPosLabel->m_fontColor.set(0.6, 0.6, 0.6);
+//        labels[i] = newPosLabel;
 
         // increment counter
         i++;
@@ -338,15 +346,14 @@ int main(int argc, char* argv[])
     matCursor2.m_diffuse.set(0.3, 0.3, 0.8);
     matCursor2.m_specular.set(1.0, 1.0, 1.0);
 
+    room = new Room(world, 0.5);
+
     matSun.m_ambient.set(0.4, 0.3, 0.0);
     matSun.m_diffuse.set(1.0, 0.7, 0.0);
     matSun.m_specular.set(1.0, 1.0, 1.0);
+    sun = new Sphere(world, 0.05, matSun, -room->getHeight()/2);
 
-//    cVector3d center(-0.5, 0.0, 0.0);
-//    Cube* cube = new Cube(world, center, 0.2, matCursor2);
-    sun = new Sphere(world, NULL, 0.05, matSun);
     logic = new Logic(world, sun);
-
 
     //-----------------------------------------------------------------------
     // OPEN GL - WINDOW DISPLAY
@@ -403,6 +410,7 @@ int main(int argc, char* argv[])
 cVector3d deviceToWorld(cVector3d position, int deviceId) {
     cVector3d p = position;
 
+//    p.x *= coordinateFactor / 2.0;
     p.y *= coordinateFactor;
     p.z *= coordinateFactor;
 
@@ -426,6 +434,7 @@ cVector3d worldToDevice(cVector3d position, int deviceId) {
 
     p.x -= DEVICE_DISTANCE/2.0;
 
+//    p.x /= coordinateFactor / 2.0;
     p.y /= coordinateFactor;
     p.z /= coordinateFactor;
 
@@ -459,37 +468,30 @@ void keySelect(unsigned char key, int x, int y)
         exit(0);
     }
 
-    // option 1:
+    // option s:
+    if (key == 's')
+    {
+        if (calibrationFinished && logic->isReady() && !logic->gameIsOver())
+            logic->spawnNewTarget(true);
+    }
+
+    // option c:
     if (key == 'c')
     {
-        logic->spawnNewTarget();
-    }
+        if (!calibrationFinished) {
+            calibrationFinished = true;
+            std::cout << "Calibration finished: (" << min << "), (" << max << ")" << std::endl;
 
-    // option 1:
-    if (key == '1')
-    {
-        useForceField = !useForceField;
-        if (useForceField)
-        {
-            printf ("- Enable force field\n");
-        }
-        else
-        {
-            printf ("- Disable force field\n");
+            logic->init(min, max);
         }
     }
 
-    // option 2:
-    if (key == '2')
+    // option r:
+    if (key == 'r')
     {
-        useDamping = !useDamping;
-        if (useDamping)
-        {
-            printf ("- Enable viscosity\n");
-        }
-        else
-        {
-            printf ("- Disable viscosity\n");
+        if (calibrationFinished) {
+            logic->init(min, max);
+            scoreDisplayed = false;
         }
     }
 }
@@ -536,26 +538,26 @@ void close(void)
 void updateGraphics(void)
 {
     // update content of position label
-    for (int i=0; i<numHapticDevices; i++)
-    {
-        // read position of device an convert into millimeters
-        cVector3d pos;
-        hapticDevices[i]->getPosition(pos);
-        pos.mul(1000);
+//    for (int i=0; i<numHapticDevices; i++)
+//    {
+//        // read position of device an convert into millimeters
+//        cVector3d pos;
+//        hapticDevices[i]->getPosition(pos);
+//        pos.mul(1000);
 
-        // create a string that concatenates the device number and its position.
-        string strID;
-        cStr(strID, i);
-        string strLabel = "#" + strID + "  x: ";
+//        // create a string that concatenates the device number and its position.
+//        string strID;
+//        cStr(strID, i);
+//        string strLabel = "#" + strID + "  x: ";
 
-        cStr(strLabel, pos.x, 2);
-        strLabel = strLabel + "   y: ";
-        cStr(strLabel, pos.y, 2);
-        strLabel = strLabel + "  z: ";
-        cStr(strLabel, pos.z, 2);
+//        cStr(strLabel, pos.x, 2);
+//        strLabel = strLabel + "   y: ";
+//        cStr(strLabel, pos.y, 2);
+//        strLabel = strLabel + "  z: ";
+//        cStr(strLabel, pos.z, 2);
 
-        labels[i]->m_string = strLabel;
-    }
+//        labels[i]->m_string = strLabel;
+//    }
 
     // render world
     camera->renderView(displayW, displayH);
@@ -580,6 +582,11 @@ void updateGraphics(void)
 void updateHaptics(void)
 {
     double timeV = 0.0;
+
+    cLabel* label = new cLabel();
+    rootLabels->addChild(label);
+    label->setPos(0, 30, 0);
+    label->m_fontColor.set(1.0, 1.0, 1.0);
 
     // main haptic simulation loop
     while(simulationRunning)
@@ -654,47 +661,82 @@ void updateHaptics(void)
         sun->setPos(equilibrium /*+ vibrationAmount*dir*cSinRad(timeV)*/);
 
         // Update logic
-        logic->update(deltaTime);
+        if (!calibrationFinished) {
+            label->m_string = "Calibrating...";
 
-        for (i = 0; i < numHapticDevices; i++) {
-            // compute a reaction force
-            cVector3d newForce (0,0,0);
+            if (sun->getPos().x < min.x)
+                min.x = sun->getPos().x;
+            if (sun->getPos().y < min.y)
+                min.y = sun->getPos().y;
+            if (sun->getPos().z < min.z)
+                min.z = sun->getPos().z;
 
-            cVector3d devicePosition;
-            hapticDevices[i]->getPosition(devicePosition);
-            devicePosition = deviceToWorld(devicePosition, i);
+            if (sun->getPos().x > max.x)
+                max.x = sun->getPos().x;
+            if (sun->getPos().y > max.y)
+                max.y = sun->getPos().y;
+            if (sun->getPos().z > max.z)
+                max.z = sun->getPos().z;
+        } else if (logic->isReady()) {
+            if (logic->gameIsOver() && !scoreDisplayed) {
+                std::stringstream strs;
+                strs << logic->playTime();
+                std::string playString = strs.str();
 
-            double k = 0.5;
-            double dist = (devicePosition - sun->getPos()).length();
-            dist=dist-0.1;
+                // define its position, color and string message
+                label->m_string = "You won! Your Time: " + playString;
 
-            newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
-            double intensity = (newForce.length()-9.0)*1.0;
-            newForce.normalize();
-            newForce *= intensity;
+                for (i = 0; i < numHapticDevices; i++) {
+                    cVector3d zero(0.0, 0.0, 0.0);
+                    hapticDevices[i]->setForce(zero);
+                }
 
-//            newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
+                scoreDisplayed = true;
+            } else if (!scoreDisplayed) {
+                label->m_string = "";
+                logic->update(deltaTime);
 
-            if (i == 0) {  // Device on positive X (RIGHT)
-                newForce.x *= -1.0;
-                newForce.y *= -1.0;
+                for (i = 0; i < numHapticDevices; i++) {
+                    // compute a reaction force
+                    cVector3d newForce (0,0,0);
+
+                    cVector3d devicePosition;
+                    hapticDevices[i]->getPosition(devicePosition);
+                    devicePosition = deviceToWorld(devicePosition, i);
+
+                    double k = 0.5;
+                    double dist = (devicePosition - sun->getPos()).length();
+                    dist=dist-0.1;
+
+                    newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
+                    double intensity = (newForce.length()-9.0)*1.0;
+                    newForce.normalize();
+                    newForce *= intensity;
+
+        //            newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
+
+                    if (i == 0) {  // Device on positive X (RIGHT)
+                        newForce.x *= -1.0;
+                        newForce.y *= -1.0;
+                    }
+
+                    // send computed force to haptic device
+        //            bool status = true;
+        //            if (hapticDevices[i]->getUserSwitch(0))
+        //                printf("button pressed\n");
+
+                    // Check if the sphere is in the target area. If so, vibrate
+                    cVector3d vibrationForce(0.0, 0.0, 0.0);
+                    if (logic->sphereInTarget()) {
+                        double t = pClock.getCurrentTimeSeconds();
+                        vibrationForce = cVector3d(5*cSinRad(40*t), 0.0, 0.0);
+                    }
+
+                    newForce += vibrationForce;
+        //            hapticDevices[i]->setForce(newForce);
+                    hapticDevices[i]->setForce(vibrationForce);
+                }
             }
-
-            // send computed force to haptic device
-//            bool status = true;
-//            if (hapticDevices[i]->getUserSwitch(0))
-//                printf("button pressed\n");
-
-            // Check if the sphere is in the target area. If so, vibrate
-            cVector3d vibrationForce(0.0, 0.0, 0.0);
-            if (logic->sphereInTarget()) {
-                double t = pClock.getCurrentTimeSeconds();
-                vibrationForce = cVector3d(5*cSinRad(40*t), 0.0, 0.0);
-            }
-
-            newForce += vibrationForce;
-//            hapticDevices[i]->setForce(newForce);
-            hapticDevices[i]->setForce(vibrationForce);
         }
     }
     

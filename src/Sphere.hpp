@@ -6,17 +6,18 @@
 
 class Sphere {
 public:
-    Sphere (cWorld* world, Cube* room, double radius, cMaterial material);
+    Sphere (cWorld* world, double radius, cMaterial material, double shadowOffset);
 
     void setPos(cVector3d pos);
     cVector3d getPos();
     double getRadius();
+    double getShadowOffset();
 
 private:
     cWorld* world;
     Cube* room;
 
-    double radius;
+    double radius, shadowOffset;
 
     cShapeSphere* sphere;
     cMesh* shadow;

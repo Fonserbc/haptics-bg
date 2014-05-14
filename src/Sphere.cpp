@@ -1,8 +1,9 @@
 #include "Sphere.hpp"
 
-Sphere::Sphere (cWorld* world, Cube* room, double radius, cMaterial material) {
+Sphere::Sphere (cWorld* world, double radius, cMaterial material, double shadowOffset) {
     this->world = world;
     this->radius = radius;
+    this->shadowOffset = shadowOffset + 0.0005;
 
     sphere = new cShapeSphere(radius);
     sphere->m_material = material;
@@ -31,7 +32,7 @@ Sphere::Sphere (cWorld* world, Cube* room, double radius, cMaterial material) {
 void Sphere::setPos(cVector3d pos) {
     sphere->setPos(pos);
 
-    cVector3d shadowPos = cVector3d(pos.x, pos.y, -0.25);//room->getHeight() / 2);
+    cVector3d shadowPos = cVector3d(pos.x, pos.y, shadowOffset);
     shadow->setPos(shadowPos);
 }
 
@@ -41,4 +42,8 @@ cVector3d Sphere::getPos() {
 
 double Sphere::getRadius() {
     return radius;
+}
+
+double Sphere::getShadowOffset() {
+    return shadowOffset;
 }

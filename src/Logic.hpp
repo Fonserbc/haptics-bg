@@ -15,6 +15,7 @@ public:
     void update(double deltaTime);
     void spawnNewTarget(bool reduceSize = false);
     bool sphereInTarget();
+    Cube* getTarget();
 
     double playTime();
     bool gameIsOver();

@@ -48,7 +48,7 @@ const int OPTION_WINDOWDISPLAY  = 2;
 
 // maximum number of haptic devices supported in this demo
 const int MAX_DEVICES           = 2;
-const double DEVICE_DISTANCE    = 0.3;
+const double DEVICE_DISTANCE    = 0.5;
 
 
 //---------------------------------------------------------------------------
@@ -293,23 +293,23 @@ int main(int argc, char* argv[])
         cursors[i] = newCursor;
 
         // create a small line to illustrate velocity
-        cShapeLine* newLine = new cShapeLine(cVector3d(0,0,0), cVector3d(0,0,0));
-        velocityVectors[i] = newLine;
+//        cShapeLine* newLine = new cShapeLine(cVector3d(0,0,0), cVector3d(0,0,0));
+//        velocityVectors[i] = newLine;
 
-        // add line to the world
-        world->addChild(newLine);
+//        // add line to the world
+//        world->addChild(newLine);
 
         // create a string that concatenates the device number and model name.
-        string strID;
-        cStr(strID, i);
-        string strDevice = "#" + strID + " - " +info.m_modelName;
+//        string strID;
+//        cStr(strID, i);
+//        string strDevice = "#" + strID + " - " +info.m_modelName;
 
         // attach a small label next to the cursor to indicate device information
-        cLabel* newLabel = new cLabel();
-        newCursor->addChild(newLabel);
-        newLabel->m_string = strDevice;
-        newLabel->setPos(0.00, 0.02, 0.00);
-        newLabel->m_fontColor.set(1.0, 1.0, 1.0);
+//        cLabel* newLabel = new cLabel();
+//        newCursor->addChild(newLabel);
+//        newLabel->m_string = strDevice;
+//        newLabel->setPos(0.00, 0.02, 0.00);
+//        newLabel->m_fontColor.set(1.0, 1.0, 1.0);
 
         // if the device provided orientation sensing (stylus), a reference
         // frame is displayed
@@ -410,40 +410,6 @@ int main(int argc, char* argv[])
     return (0);
 }
 
-cVector3d deviceToWorld(cVector3d position, int deviceId) {
-    cVector3d p = position;
-
-//    p.x *= coordinateFactor / 2.0;
-    p.y *= coordinateFactor;
-    p.z *= coordinateFactor;
-
-    p.x += DEVICE_DISTANCE/2.0;
-
-    if (deviceId == 0) {  // Device on positive X (RIGHT)
-        p.x *= -1.0;
-        p.y *= -1.0;
-    }
-
-    return p;
-}
-
-cVector3d worldToDevice(cVector3d position, int deviceId) {
-    cVector3d p = position;
-
-    if (deviceId == 0) {  // Device on positive X (RIGHT)
-        p.x *= -1.0;
-        p.y *= -1.0;
-    }
-
-    p.x -= DEVICE_DISTANCE/2.0;
-
-//    p.x /= coordinateFactor / 2.0;
-    p.y /= coordinateFactor;
-    p.z /= coordinateFactor;
-
-    return p;
-}
-
 //---------------------------------------------------------------------------
 
 void resizeWindow(int w, int h)
@@ -476,6 +442,13 @@ void keySelect(unsigned char key, int x, int y)
     {
         if (calibrationFinished && logic->isReady() && !logic->gameIsOver())
             logic->spawnNewTarget();
+    }
+
+    // option d:
+    if (key == 'd')
+    {
+        if (calibrationFinished && logic->isReady() && !logic->gameIsOver())
+            logic->spawnNewTarget(true);
     }
 
     // option c:
@@ -628,8 +601,8 @@ void updateHaptics(void)
             hapticDevices[i]->getLinearVelocity(linearVelocity);
 
             // update arrow
-            velocityVectors[i]->m_pointA = newPosition;
-            velocityVectors[i]->m_pointB = cAdd(newPosition, linearVelocity);
+//            velocityVectors[i]->m_pointA = newPosition;
+//            velocityVectors[i]->m_pointB = cAdd(newPosition, linearVelocity);
 
             // read user button status
             bool buttonStatus;
@@ -664,7 +637,7 @@ void updateHaptics(void)
         double vibrationAmount = 0.02;
 
         //sun->setPos(sun->getPos()*(1.0 - deltaTime*speed) + equilibrium*(deltaTime*speed));
-        timeV += deltaTime*vibrationSpeed*(0.7 - cAbs(f0 - 0.5)*2.0);
+        //timeV += deltaTime*vibrationSpeed*(0.7 - cAbs(f0 - 0.5)*2.0);
         sun->setPos(equilibrium /*+ vibrationAmount*dir*cSinRad(timeV)*/);
 
         // Update logic
@@ -692,7 +665,7 @@ void updateHaptics(void)
                 std::string playString = strs.str();
 
                 // define its position, color and string message
-                label->m_string = "Congratulations! Your Time: " + playString;
+                label->m_string = "Congratulation! Your Time: " + playString;
                 label2->m_string = "Press 'r' to restart!";
 
                 for (i = 0; i < numHapticDevices; i++) {
@@ -707,52 +680,87 @@ void updateHaptics(void)
 
                 logic->update(deltaTime);
 
-                for (i = 0; i < numHapticDevices; i++) {
-                    // compute a reaction force
-                    cVector3d newForce (0,0,0);
-
-                    cVector3d devicePosition;
-                    hapticDevices[i]->getPosition(devicePosition);
-                    devicePosition = deviceToWorld(devicePosition, i);
-
-                    double k = 0.5;
-                    double dist = (devicePosition - sun->getPos()).length();
-                    dist=dist-0.1;
-
-                    newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
-                    double intensity = (newForce.length()-9.0)*1.0;
-                    newForce.normalize();
-                    newForce *= intensity;
-
-        //            newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
-
-                    if (i == 0) {  // Device on positive X (RIGHT)
-                        newForce.x *= -1.0;
-                        newForce.y *= -1.0;
-                    }
-
-                    // send computed force to haptic device
-        //            bool status = true;
-        //            if (hapticDevices[i]->getUserSwitch(0))
-        //                printf("button pressed\n");
-
-                    // Check if the sphere is in the target area. If so, vibrate
-                    cVector3d vibrationForce(0.0, 0.0, 0.0);
-                    if (logic->sphereInTarget()) {
-                        double t = pClock.getCurrentTimeSeconds();
-                        vibrationForce = cVector3d(5*cSinRad(40*t), 0.0, 0.0);
-                    }
-
-                    newForce += vibrationForce;
-        //            hapticDevices[i]->setForce(newForce);
-                    hapticDevices[i]->setForce(vibrationForce);
-                }
             }
+
+            for (i = 0; i < numHapticDevices; i++) {
+                // compute a reaction force
+                cVector3d newForce (0,0,0);
+
+                cVector3d devicePosition;
+                hapticDevices[i]->getPosition(devicePosition);
+                devicePosition = deviceToWorld(devicePosition, i);
+
+                double k = 0.5;
+                double dist = (devicePosition - sun->getPos()).length();
+                //dist=dist-0.1;
+
+                newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
+                //double intensity = (newForce.length())*1.0;
+                //newForce.normalize();
+                //newForce *= intensity;
+
+    //            newForce = k*(devicePosition - sun->getPos())/(dist*dist*dist);
+
+                if (i == 0) {  // Device on positive X (RIGHT)
+                    newForce.x *= -1.0;
+                    newForce.y *= -1.0;
+                }
+
+                // send computed force to haptic device
+    //            bool status = true;
+    //            if (hapticDevices[i]->getUserSwitch(0))
+    //                printf("button pressed\n");
+
+                // Check if the sphere is in the target area. If so, vibrate
+                cVector3d vibrationForce(0.0, 0.0, 0.0);
+                if (logic->sphereInTarget() && !logic->gameIsOver()) {
+                    Cube* target = logic->getTarget();
+                    double dist = target->getPos().distance(sun->getPos());
+                    double factor = 1.0 - dist/(target->size/2.0);
+                    timeV += deltaTime * (0.5 + factor/2.0);
+
+                    double f = 2*cSinRad(40*timeV);
+                    vibrationForce = cVector3d(f, f, f);
+                }
+
+                newForce += vibrationForce;
+                hapticDevices[i]->setForce(newForce);
+          }
         }
     }
     
     // exit haptics thread
     simulationFinished = true;
+}
+
+cVector3d deviceToWorld(cVector3d position, int deviceId) {
+    cVector3d p = position;
+
+    p *= coordinateFactor;
+
+    p.x += DEVICE_DISTANCE/2.0;
+
+    if (deviceId == 0) {  // Device on positive X (RIGHT)
+        p.x *= -1.0;
+        p.y *= -1.0;
+    }
+
+    return p;
+}
+
+cVector3d worldToDevice(cVector3d position, int deviceId) {
+    cVector3d p = position;
+
+    if (deviceId == 0) {  // Device on positive X (RIGHT)
+        p.x *= -1.0;
+        p.y *= -1.0;
+    }
+
+    p.x -= DEVICE_DISTANCE/2.0;
+
+    p /= coordinateFactor;
+
+    return p;
 }
 
 //---------------------------------------------------------------------------

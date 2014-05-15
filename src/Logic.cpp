@@ -30,7 +30,7 @@ void Logic::init(cVector3d minSpherePos, cVector3d maxSpherePos) {
     rangeOfMovement.z = cMin(maxSpherePos.z - centerOfMovement.z, centerOfMovement.z - minSpherePos.z);
     rangeOfMovement *= 0.9;
 
-    targetSize = sphere->getRadius() * 4;
+    targetSize = sphere->getRadius() * 2.5;
     spawnNewTarget();
 
     timePlayed = 0.0;
@@ -47,7 +47,7 @@ void Logic::spawnNewTarget(bool reduceSize) {
 
     // Reduce size of target area
     if (reduceSize) {
-        targetSize -= sphere->getRadius() * 0.25;
+        targetSize -= sphere->getRadius() * 0.125;
 
         if (targetSize <= sphere->getRadius()) {
             gameOver = true;
@@ -91,6 +91,11 @@ bool Logic::sphereInTarget() {
         return true;
     else
         return false;
+}
+
+
+Cube* Logic::getTarget() {
+    return target;
 }
 
 bool Logic::isReady() {

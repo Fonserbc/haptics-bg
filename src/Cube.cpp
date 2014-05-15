@@ -2,6 +2,7 @@
 
 Cube::Cube(cWorld *world, cVector3d position, double size, cMaterial material, double shadowOffset) {
     this->world = world;
+    this->size = size;
 
     mesh = new cMesh(this->world);
     mesh->setPos(position);

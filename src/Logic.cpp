@@ -22,13 +22,18 @@ Logic::Logic(cWorld* world, Sphere* sphere) {
 }
 
 void Logic::init(cVector3d minSpherePos, cVector3d maxSpherePos) {
-    timePlayed = 0.0;
-    minPos = minSpherePos;
-    maxPos = maxSpherePos;
+    // Get the equilibrium between the minimum and maxium possible position of the sphere
+    centerOfMovement = (maxSpherePos + minSpherePos) * 0.5;
+    // For every axis get the limits of movement
+    rangeOfMovement.x = cMin(maxSpherePos.x - centerOfMovement.x, centerOfMovement.x - minSpherePos.x);
+    rangeOfMovement.y = cMin(maxSpherePos.y - centerOfMovement.y, centerOfMovement.y - minSpherePos.y);
+    rangeOfMovement.z = cMin(maxSpherePos.z - centerOfMovement.z, centerOfMovement.z - minSpherePos.z);
+    rangeOfMovement *= 0.9;
 
     targetSize = sphere->getRadius() * 4;
     spawnNewTarget();
 
+    timePlayed = 0.0;
     gameOver = false;
     initialized = true;
 }
@@ -37,10 +42,10 @@ void Logic::spawnNewTarget(bool reduceSize) {
     timeInTarget = 0.0;
 
     // Remove old target
-    if (target != NULL) {
+    if (target != NULL)
         target->remove();
-    }
 
+    // Reduce size of target area
     if (reduceSize) {
         targetSize -= sphere->getRadius() * 0.25;
 
@@ -51,15 +56,17 @@ void Logic::spawnNewTarget(bool reduceSize) {
         }
     }
 
-    // Create a random position
-    double x = ((double) (rand() % 4) * 0.05) * pow(-1.0, (double) (rand() % 2)) - 0.03;
-    double y = ((double) (rand() % 4) * 0.05) * pow(-1.0, (double) (rand() % 2));
-    double z = ((double) (rand() % 4) * 0.05) * pow(-1.0, (double) (rand() % 2));
-    cVector3d position(x, y, z);
-//    std::cout << "New target area at (" << position << ") with size " << targetSize << std::endl;
-
     // Spawn cube
-    target = new Cube(world, position, targetSize, material, sphere->getShadowOffset() - 0.0001);
+//    std::cout << "New target area at (" << position << ") with size " << targetSize << std::endl;
+    target = new Cube(world, getRandomPosition(), targetSize, material, sphere->getShadowOffset() - 0.0001);
+}
+
+cVector3d Logic::getRandomPosition() {
+    //                    -1 or 1                              [0,1]                    maximum offset to center of movement
+    double x = pow(-1.0, (double) (rand() % 2)) * ((double) (rand() % 21) * 0.05) * ((rangeOfMovement.x) - sphere->getRadius()) + centerOfMovement.x;
+    double y = pow(-1.0, (double) (rand() % 2)) * ((double) (rand() % 21) * 0.05) * ((rangeOfMovement.y) - sphere->getRadius()) + centerOfMovement.y;
+    double z = pow(-1.0, (double) (rand() % 2)) * ((double) (rand() % 21) * 0.05) * ((rangeOfMovement.z) - sphere->getRadius()) + centerOfMovement.z;
+    return cVector3d(x, y, z);
 }
 
 void Logic::update(double deltaTime) {
@@ -78,8 +85,7 @@ void Logic::update(double deltaTime) {
 }
 
 bool Logic::sphereInTarget() {
-    cVector3d dir = sphere->getPos() - target->getPos();
-    double dist = dir.length();
+    double dist = sphere->getPos().distance(target->getPos());
 
     if (dist <= (targetSize/2.0))
         return true;

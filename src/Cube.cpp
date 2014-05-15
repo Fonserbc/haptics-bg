@@ -6,8 +6,8 @@ Cube::Cube(cWorld *world, cVector3d position, double size, cMaterial material, d
     mesh = new cMesh(this->world);
     mesh->setPos(position);
     mesh->setUseTransparency(true);
-    mesh->m_material = material;
     mesh->setTransparencyLevel(0.4);
+    mesh->m_material = material;
     mesh->setUseCulling(false, true);
 
     createCube(size);

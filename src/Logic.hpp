@@ -34,7 +34,9 @@ private:
     double timePlayed;
     double gameOver;
 
-    cVector3d minPos, maxPos;
+    cVector3d centerOfMovement, rangeOfMovement;
+
+    cVector3d getRandomPosition();
 };
 
 #endif // LOGIC_HPP

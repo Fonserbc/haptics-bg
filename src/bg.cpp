@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sstream>
+#include <float.h>
 //---------------------------------------------------------------------------
 #include "chai3d.h"
 //---------------------------------------------------------------------------
@@ -122,7 +123,7 @@ bool calibrationFinished = false;
 bool scoreDisplayed = false;
 cVector3d min, max;
 
-float coordinateFactor = 2.0f;
+float coordinateFactor = 4.0f;
 
 //---------------------------------------------------------------------------
 // DECLARED MACROS
@@ -353,6 +354,8 @@ int main(int argc, char* argv[])
     matSun.m_specular.set(1.0, 1.0, 1.0);
     sun = new Sphere(world, 0.05, matSun, -room->getHeight()/2);
 
+    max = cVector3d(-DBL_MAX, -DBL_MAX, -DBL_MAX);
+    min = cVector3d(DBL_MAX, DBL_MAX, DBL_MAX);
     logic = new Logic(world, sun);
 
     //-----------------------------------------------------------------------
@@ -451,7 +454,7 @@ void resizeWindow(int w, int h)
     glViewport(0, 0, displayW, displayH);
 
     // update position of labels
-    rootLabels->setPos(10, displayH-70, 0);
+    rootLabels->setPos(10, displayH-30, 0);
 }
 
 //---------------------------------------------------------------------------
@@ -472,7 +475,7 @@ void keySelect(unsigned char key, int x, int y)
     if (key == 's')
     {
         if (calibrationFinished && logic->isReady() && !logic->gameIsOver())
-            logic->spawnNewTarget(true);
+            logic->spawnNewTarget();
     }
 
     // option c:
@@ -584,9 +587,13 @@ void updateHaptics(void)
     double timeV = 0.0;
 
     cLabel* label = new cLabel();
+    cLabel* label2 = new cLabel();
     rootLabels->addChild(label);
-    label->setPos(0, 30, 0);
+    rootLabels->addChild(label2);
+    label->setPos(0, 0, 0);
+    label2->setPos(0, -20, 0);
     label->m_fontColor.set(1.0, 1.0, 1.0);
+    label2->m_fontColor.set(1.0, 1.0, 1.0);
 
     // main haptic simulation loop
     while(simulationRunning)
@@ -662,7 +669,8 @@ void updateHaptics(void)
 
         // Update logic
         if (!calibrationFinished) {
-            label->m_string = "Calibrating...";
+            label->m_string = "Calibrating, please move the haptic devices around in order to determine their limitations in movement.";
+            label2->m_string = "Press 'c' to finish calibration.";
 
             if (sun->getPos().x < min.x)
                 min.x = sun->getPos().x;
@@ -684,7 +692,8 @@ void updateHaptics(void)
                 std::string playString = strs.str();
 
                 // define its position, color and string message
-                label->m_string = "You won! Your Time: " + playString;
+                label->m_string = "Congratulations! Your Time: " + playString;
+                label2->m_string = "Press 'r' to restart!";
 
                 for (i = 0; i < numHapticDevices; i++) {
                     cVector3d zero(0.0, 0.0, 0.0);
@@ -694,6 +703,8 @@ void updateHaptics(void)
                 scoreDisplayed = true;
             } else if (!scoreDisplayed) {
                 label->m_string = "";
+                label2->m_string = "";
+
                 logic->update(deltaTime);
 
                 for (i = 0; i < numHapticDevices; i++) {

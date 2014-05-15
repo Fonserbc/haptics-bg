@@ -23,6 +23,8 @@ public:
 private:
     bool initialized;
 
+    float step;
+
     cWorld* world;
     Sphere* sphere;
 

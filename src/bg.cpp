@@ -123,6 +123,8 @@ bool calibrationFinished = false;
 bool scoreDisplayed = false;
 cVector3d min, max;
 
+
+int test = 1;
 float coordinateFactor = 4.0f;
 
 //---------------------------------------------------------------------------
@@ -215,7 +217,7 @@ int main(int argc, char* argv[])
     world->addChild(camera);
 
     // position and oriente the camera
-    camera->set( cVector3d (-0.75, 0.0, 0.25),    // camera position (eye)
+    camera->set( cVector3d (-1.0, 0.0, 0.3),    // camera position (eye)
                  cVector3d (0.0, 0.0, 0.0),    // lookat position (target)
                  cVector3d (0.0, 0.0, 1.0));   // direction of the "up" vector
 
@@ -466,6 +468,8 @@ void keySelect(unsigned char key, int x, int y)
     if (key == 'r')
     {
         if (calibrationFinished) {
+            test += 1;
+            if (test > 2) test = 1;
             logic->init(min, max);
             scoreDisplayed = false;
         }
@@ -690,7 +694,8 @@ void updateHaptics(void)
                 hapticDevices[i]->getPosition(devicePosition);
                 devicePosition = deviceToWorld(devicePosition, i);
 
-                double k = 0.5;
+                double k = 0.4;
+                if (test == 1) k = 0.3;
                 double dist = (devicePosition - sun->getPos()).length();
                 //dist=dist-0.1;
 
@@ -724,7 +729,8 @@ void updateHaptics(void)
                 }
 
                 newForce += vibrationForce;
-                hapticDevices[i]->setForce(newForce);
+                if (test > 1 || i == 1)
+                    hapticDevices[i]->setForce(newForce);
           }
         }
     }

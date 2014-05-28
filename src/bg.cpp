@@ -247,7 +247,7 @@ int main(int argc, char* argv[])
     // Check if two devices are plugged in.
     if(numHapticDevices != 2) {
         std::cout << "Application shut down: Two falcon devices are needed." << std::endl;
-        //exit(0);
+        exit(0);
     }
 
     // create a node on which we will attach small labels that display the
@@ -469,10 +469,15 @@ void keySelect(unsigned char key, int x, int y)
     {
         if (calibrationFinished) {
             test += 1;
-            if (test > 2) test = 1;
+            if (test > 3) test = 1;
             logic->init(min, max);
             scoreDisplayed = false;
         }
+    }
+
+    if (key == 't')
+    {
+        test = 0;
     }
 }
 
@@ -729,8 +734,13 @@ void updateHaptics(void)
                 }
 
                 newForce += vibrationForce;
-                if (test > 1 || i == 1)
+                if (test <= 2 || i == 0)
                     hapticDevices[i]->setForce(newForce);
+                else {
+                    cVector3d zero;
+                    zero.zero();
+                    hapticDevices[i]->setForce(zero);
+                }
           }
         }
     }
